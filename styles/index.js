@@ -27,7 +27,10 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         left: 0,
         right: 0,
-        bottom: 0
+        bottom: -10,
+        paddingBottom: 10,
+        paddingLeft: 10,
+        paddingRight: 10
     },
     infoTitle: {
         fontFamily: Platform.OS === 'ios' ? 'Helvetica' : 'sans-serif-light',
@@ -43,6 +46,12 @@ const styles = StyleSheet.create({
     infoType: {
         fontFamily: Platform.OS === 'ios' ? 'Helvetica' : 'sans-serif-light',
         fontSize: 13,
+        padding: 5
+    },
+    infoPrice: {
+        fontFamily: Platform.OS === 'ios' ? 'Helvetica' : 'sans-serif-light',
+        fontSize: 13,
+        fontWeight: 'bold',
         padding: 5
     },
     infoLineContainer: {
