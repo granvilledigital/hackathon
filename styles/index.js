@@ -70,7 +70,8 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         paddingTop: 5,
-        paddingLeft: 11
+        paddingLeft: 11,
+        marginRight: 5
 
     }
 

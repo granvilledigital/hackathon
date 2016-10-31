@@ -7,16 +7,15 @@ import {
   View,
 } from 'react-native';
 import styles from './styles';
-import {lines, region} from './data';
+import {lines, region, stations} from './data';
 import {maneoLinesMapping, nevaLinesMapping} from './config';
 
 const MENU_HEIGHT = 200;
 
-const getColor = (line) => {
-    if(!Object.keys(line).length) return '';
-    return line.type === 'Neva'
-        ? nevaLinesMapping[line.number].color
-        : maneoLinesMapping[line.number].color;
+const getColor = (line, number) => {
+    return line === 'neva'
+        ? nevaLinesMapping[number].color
+        : maneoLinesMapping[number].color;
 }
 
 export default class granvilleBusMaps extends Component {
@@ -25,10 +24,11 @@ export default class granvilleBusMaps extends Component {
         super(props);
         this.renderlines = () => this.renderlinesData();
         this.renderMarkers = () => this.renderMarkersData();
-        this.onMarkerClick = (route, line) => () => this.markerClick(route, line);
+        this.displayLinesNumber = () => this.displayLines()
+        this.onMarkerClick = (station) => () => this.markerClick(station);
+        this.renderStationInformations = () => this.renderInformations();
         this.onCloseMenu = () => this.closeMenu();
         this.state = {
-            initialPosition: 'unknown',
             info: {
                 height: new Animated.Value(0),
                 data: {}
@@ -36,54 +36,37 @@ export default class granvilleBusMaps extends Component {
         };
     }
 
-    componentDidMount() {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                var initialPosition = JSON.stringify(position);
-                this.setState({initialPosition});
-            },
-            (error) => ({}),
-            {enableHighAccuracy: true, timeout: 2000, maximumAge: 300}
-        );
-    }
-
-    componentWillUnmount() {
-        navigator.geolocation.clearWatch(this.watchID);
-    }
-
     renderlinesData(){
         return lines.map(
             (line, i) => {
-                const routesData = line.routes.map((route) => route.geo);
+                const {type, number, routes} = line;
                 return (
                     <Polyline key={i}
-                              coordinates={routesData}
+                              coordinates={routes}
                               strokeWidth={2}
-                              strokeColor={getColor(line)} />
+                              strokeColor={getColor(type, number)} />
                 );
             }
         );
     }
 
     renderMarkersData(){
-        return lines.map(
-            (line, i) => line.routes.map(
-                (route, j) => route.type === 'stations' && (
-                    <Marker key={`${i}${j}`}
-                            image={require('./img/station_small.png')}
-                            onPress={this.onMarkerClick(route, line)}
-                            coordinate={route.geo} />
-                )
+        return stations.map(
+            (station, i) => (
+                <Marker key={i}
+                        image={require('./img/station_small.png')}
+                        onPress={this.onMarkerClick(station)}
+                        coordinate={station.geo} />
             )
         );
     }
 
-    markerClick(station, line){
-        const {info, data} = this.state;
+    markerClick(station){
+        const {info} = this.state;
         this.setState({
             info: {
                 ...info,
-                data: {...station, ...line}
+                data: station
             }
         }, () => Animated.timing(
             this.state.info.height,
@@ -98,9 +81,35 @@ export default class granvilleBusMaps extends Component {
         ).start();
     }
 
+    renderInformations() {
+        const {data: {name, lines}} = this.state.info;
+        return name && (
+            <View>
+                <Text style={styles.infoTitle}>{name}</Text>
+                <Text style={styles.infoLine}>{'Lignes:'}</Text>
+                    {Object.keys(lines).map((lineType, i) => {
+                        const ret = [
+                            <Text key={lineType} style={styles.infoLine}>
+                                {lineType}
+                            </Text>,
+                            lines[lineType].map((line, i) => {
+                                const color = getColor(lineType, line);
+                                return (
+                                    <Text key={i} style={[styles.infoNumber, {color, borderColor: color}]}>{line}</Text>
+                                );
+                            }),
+                            <Text key={`${lineType}price`} style={styles.infoPrice}>
+                                {`(${lineType === 'neva' ? '1€' : '2.3€'})`}
+                            </Text>
+                        ];
+                        return (<View key={i} style={styles.infoLineContainer}>{ret}</View>);
+                    })}
+            </View>
+        );
+    }
+
     render() {
-        const {initialPosition, info: {display, height, data, data: {name, number, type}}} = this.state;
-        const color = getColor(data);
+        const {info: {height}} = this.state;
         return (
             <View style={styles.container}>
                 <MapView style={styles.map}
@@ -113,14 +122,7 @@ export default class granvilleBusMaps extends Component {
                     {this.renderMarkers()}
                 </MapView>
                 <Animated.View style={[styles.info, {height}]}>
-                    <Text style={styles.infoTitle}>{'Information'}</Text>
-                    <Text style={styles.infoName}>{`Station: ${name}`}</Text>
-                    <View style={styles.infoLineContainer}>
-                        <Text style={styles.infoLine}>{'Ligne:'}</Text>
-                        <Text style={[styles.infoNumber, {color, borderColor: color}]}>{number}</Text>
-                    </View>
-                    <Text style={styles.infoType}>{`Bus: ${type}`}</Text>
-                    <Text style={styles.infoPrice}>{`Prix: ${type === 'Neva' ? '1€' : '2.3€'}`}</Text>
+                    {this.renderStationInformations()}
                 </Animated.View>
             </View>
         );
